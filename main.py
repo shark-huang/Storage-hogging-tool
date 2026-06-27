@@ -1,5 +1,5 @@
 import os
-from ctypes import CDLL
+from ctypes import CDLL, c_bool, c_int
 import traceback
 def erro(word):
     print("Erro:\n",word)
@@ -10,6 +10,8 @@ try:
     base_path =os.path.dirname(os.path.realpath(__file__))
     dll_address=os.path.join(base_path,"backend.dll")
     c=CDLL(dll_address)
+    c.number_size.restype = c_bool
+    c.number.restype = c_int
 except Exception:
     erro(traceback.format_exc())
 while type_shuju not in ["B","KB","MB","GB"]:
@@ -17,8 +19,10 @@ while type_shuju not in ["B","KB","MB","GB"]:
 while True:
     try:
         side=int(input("生成的大小:"))
-        if side>0 and side<=8796:
+        shuju_size=c.number_size(side, type_shuju.encode("utf-8"))
+        if shuju_size :
             break
+        else: print("你输入为负数或太大,请重新输入")
     except ValueError:
         erro("请输入整数!")
 def panduan(y_n):

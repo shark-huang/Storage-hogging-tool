@@ -39,6 +39,26 @@ int write_shuju(const char* path,long long size) {
     return ERR_SUCCESS;
 }
 extern "C" __declspec(dllexport)
+bool number_size(int side, const char* shuju_type) {
+    double num_size = 0.0;
+    if (side <= 0) return false;
+    if (strcmp(shuju_type, "B") == 0) {
+        num_size = side / (1024.0 * 1024.0 * 1024.0);
+    }
+    else if (strcmp(shuju_type, "KB") == 0) {
+        num_size = side / (1024.0 * 1024.0);
+    }
+    else if (strcmp(shuju_type, "MB") == 0) {
+        num_size = side / 1024.0;
+    }
+	else if (strcmp(shuju_type, "GB") == 0) {
+		num_size = side;
+	}
+    else return false;
+	if (num_size > 1024.0) return false;
+    else return true;
+}
+extern "C" __declspec(dllexport)
 int number(int side, const char* shuju_type) {
     long long int num = 0;
     if (strcmp(shuju_type, "B") == 0) {
