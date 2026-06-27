@@ -1,0 +1,20 @@
+# 编译产物
+*.dll
+*.exe
+*.obj
+*.pdb
+Debug/
+Release/
+.vs/
+
+# Python缓存
+__pycache__/
+*.pyc
+
+# 生成的测试文件
+0.bin
+
+# IDE配置
+.vscode/
+*.suo
+*.sln
