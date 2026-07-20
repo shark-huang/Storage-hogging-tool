@@ -59,7 +59,7 @@ bool number_size(int side, const char* shuju_type) {
     else return true;
 }
 extern "C" __declspec(dllexport)
-int number(int side, const char* shuju_type) {
+int number(int side, const char* shuju_type , const char* path) {
     long long int num = 0;
     if (strcmp(shuju_type, "B") == 0) {
         num = side;
@@ -77,11 +77,9 @@ int number(int side, const char* shuju_type) {
         num = 1024LL * 1024 * 1024 * side;
     }
     else return ERR_UNIT_INVALID;
+    
     char path_get[MAX_PATH] = { 0 };
-	if (GetModuleFileNameA(GetModuleHandleA("backend.dll"), path_get, MAX_PATH-6) == 0)
-	{
-		return ERR_PATH_GET;
-	}
+    strcpy_s(path_get, MAX_PATH, path);
     char* last_backslash = strrchr(path_get, '\\');
     if (last_backslash == nullptr) {
         return ERR_PATH_GET; // 无路径分隔符，非法路径
