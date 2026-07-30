@@ -6,22 +6,29 @@ from tkinter import ttk
 import os
 import uuid
 from ctypes import CDLL, c_bool, c_int
+import ctypes
 import traceback
-
+import sys
+def get_dll(name):
+    if hasattr(sys,"_METPASS"):
+        dll_address = os.path.join(sys._MEIPASS, name)
+    else:
+        base_path = os.path.dirname(os.path.realpath(__file__))
+        dll_address=os.path.join(base_path,name)
+    return dll_address
 win=tk.Tk()
 win.title("储存生成工具")
 win.geometry("400x300")
+win.iconbitmap(get_dll("app.ico"))
 win.resizable(width=False, height=False)
 panduan_bool=True
 try:
-    base_path =os.path.dirname(os.path.realpath(__file__))
-    dll_address=os.path.join(base_path,"backend.dll")
-    c=CDLL(dll_address)
+
+    c=CDLL(get_dll("backend.dll"))
     c.number_size.restype = c_bool
     c.number.restype = c_int
 except Exception:
     messagebox.showerror("错误",traceback.format_exc())
-
 def address_get():
     address_path=filedialog.askdirectory(title="文件储存路径选择",initialdir = "C:/")
     if address_path:
@@ -107,19 +114,26 @@ def check_quanxian(win,check_address):
 
 def shuju_result(check_result,result_text):
     global panduan_bool
+    c.number.argtypes = (ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p)
+    c.number.restype = ctypes.c_int
     if not check_result:
         messagebox.showerror("错误", result_text)
         panduan_bool=True
         return
     type_shuju_get = type_xuan.get()
-    wold_shuju_get = wold_shuju_entry.get()
+    wold_shuju_get = int(wold_shuju_entry.get())
     address_shuju_get = address_Entry.get()
+    address_shuju_get=address_shuju_get.replace("/","\\")
+    if type_shuju_get=="GB" and wold_shuju_get>=1:
+        xuan_yesno=messagebox.askyesno(title="提醒", message="你选的单位为GB,生成文件较大,确任生成吗?")
+        if not xuan_yesno:
+            return
     print("--")
     print(type_shuju_get)
     print(wold_shuju_get)
-    print(address_shuju_get)
+    print(address_shuju_get+"\\")
     print("__")
-    y_n=c.number(wold_shuju_get,type_shuju_get.encode('utf-8'),address_shuju_get.encode('utf-8'))
+    y_n=c.number(wold_shuju_get,type_shuju_get.encode('gbk'),(address_shuju_get+"\\").encode('gbk'))
     result_panduan(y_n)
     panduan_bool=True
     return
@@ -127,6 +141,7 @@ def result_panduan(y_n):
     text=""
     if y_n == 0:
         messagebox.showinfo("报告","写入成功")
+        return
     elif y_n == 1:
         text="文件创建失败"
     elif y_n == 2:

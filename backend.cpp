@@ -59,25 +59,27 @@ bool number_size(int side, const char* shuju_type) {
     else return true;
 }
 extern "C" __declspec(dllexport)
-int number(int side, const char* shuju_type , const char* path) {
+int number(long long int side, const char* shuju_type , const char* path) {
     long long int num = 0;
     if (strcmp(shuju_type, "B") == 0) {
         num = side;
     }
     else if (strcmp(shuju_type, "KB") == 0) {
-        if (LLONG_MAX / side < 1024LL) return ERR_NUM_OVERFLOW;
+        if (LLONG_MAX / side < 1024LL)return ERR_NUM_OVERFLOW;
         num = 1024LL * side;
     }
     else if (strcmp(shuju_type, "MB") == 0) {
-        if (LLONG_MAX / side < 1024LL*1024LL) return ERR_NUM_OVERFLOW;
+        if (LLONG_MAX / side < 1024LL*1024LL)return ERR_NUM_OVERFLOW;
         num = 1024LL * 1024 * side;
     }
     else if (strcmp(shuju_type, "GB") == 0) {
-        if (LLONG_MAX / side < 1024LL*1024LL*1024LL) return ERR_NUM_OVERFLOW;
+        if (LLONG_MAX / side < 1024LL*1024LL*1024LL)return ERR_NUM_OVERFLOW;
         num = 1024LL * 1024 * 1024 * side;
     }
-    else return ERR_UNIT_INVALID;
-    
+    else {
+        return ERR_UNIT_INVALID;
+    }
+
     char path_get[MAX_PATH] = { 0 };
     strcpy_s(path_get, MAX_PATH, path);
     char* last_backslash = strrchr(path_get, '\\');
