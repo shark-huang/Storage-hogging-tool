@@ -5,10 +5,17 @@ from tkinter import messagebox
 from tkinter import ttk
 import os
 import uuid
-from ctypes import CDLL, c_bool, c_int
+from ctypes import CDLL, c_bool, c_int, c_double
 import ctypes
 import traceback
 import sys
+class ReturnData(ctypes.Structure):
+    _pack_ = 8
+    _fields_ = [
+        ("result",c_int),
+        ("speed",c_double),
+    ]
+Data=ReturnData()
 def get_dll(name):
     if hasattr(sys,"_METPASS"):
         dll_address = os.path.join(sys._MEIPASS, name)
@@ -26,7 +33,8 @@ try:
 
     c=CDLL(get_dll("backend.dll"))
     c.number_size.restype = c_bool
-    c.number.restype = c_int
+    c.number.argtypes = [ctypes.c_longlong, ctypes.c_char_p, ctypes.c_char_p,ctypes.POINTER(ReturnData)]
+    c.number.restype = None
 except Exception:
     messagebox.showerror("错误",traceback.format_exc())
 def address_get():
@@ -114,8 +122,6 @@ def check_quanxian(win,check_address):
 
 def shuju_result(check_result,result_text):
     global panduan_bool
-    c.number.argtypes = (ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p)
-    c.number.restype = ctypes.c_int
     if not check_result:
         messagebox.showerror("错误", result_text)
         panduan_bool=True
@@ -133,13 +139,17 @@ def shuju_result(check_result,result_text):
     print(wold_shuju_get)
     print(address_shuju_get+"\\")
     print("__")
-    y_n=c.number(wold_shuju_get,type_shuju_get.encode('gbk'),(address_shuju_get+"\\").encode('gbk'))
-    result_panduan(y_n)
+    c.number(wold_shuju_get,type_shuju_get.encode('gbk'),(address_shuju_get+"\\").encode('gbk'),ctypes.byref(Data))
+    result_panduan(Data.result,Data.speed)
+    print(Data.result)
+    print(Data.speed)
     panduan_bool=True
     return
-def result_panduan(y_n):
-    text=""
+def result_panduan(y_n,speed):
+    text=None
     if y_n == 0:
+        write_speed.config(text=f"写入速度为: {speed} MB/s")
+        write_speed.grid(column=0, row=3, columnspan=3, sticky="")
         messagebox.showinfo("报告","写入成功")
         return
     elif y_n == 1:
@@ -186,8 +196,10 @@ address_Label_tip.grid(column=0, row=0, padx=0, pady=0)
 address_Entry.grid(column=1, row=0, padx=0, pady=5)
 address_Button.grid(column=2, row=0, padx=0, pady=0)
 
+write_speed=tk.Label(win,text="写入速度为:0mb/s",font=("黑体",14))
+write_speed.grid_remove()
 bottom=tk.Button(win,text="开始生成",font=("黑体",12),command=shuju_panduan)
-bottom.grid(column=0,row=3,sticky="",columnspan=3)
+bottom.grid(column=0,row=4,sticky="",columnspan=3)
 
 type_frame.grid(column=0, row=0, padx=0, pady=0,sticky="w")
 wold_shuju.grid(column=0, row=1, padx=0, pady=0,sticky="w")
