@@ -15,6 +15,73 @@ struct return_data
     int result;
     double speed;
 };
+struct return_number
+{
+    bool result;
+    long long size;
+    char type;
+};
+void side_1024_num(long long size, const char type, struct return_number* out)
+{
+    int n = 0;
+    char type_choess[4] = {'B', 'K','M', 'G'};
+	int len = sizeof(type_choess) / sizeof(type_choess[0]);
+    if (size % 1024 == 0) {
+        while (size>=1024 && n<4)
+        {
+	        size /= 1024;
+	        n++;
+        }
+        out->size = size;
+        for(int i=0;i<len;i++)
+        {
+            if(type_choess[i] == type)
+            {
+                out->type = type_choess[i+n];
+                break;
+            }
+        }
+        return;
+    }
+    else {
+        out->size = size;
+        out->type = type;
+        return;
+    }
+}
+extern "C" __declspec(dllexport)
+void number_size(long long side, const char* shuju_type, struct return_number* out_number) {
+    double num_size = 0.0;
+    if (side <= 0) {
+        out_number->result = false;
+        return;
+    }
+    if (strcmp(shuju_type, "B") == 0) {
+        num_size = side / (1024.0 * 1024.0 * 1024.0);
+    }
+    else if (strcmp(shuju_type, "KB") == 0) {
+        num_size = side / (1024.0 * 1024.0);
+    }
+    else if (strcmp(shuju_type, "MB") == 0) {
+        num_size = side / 1024.0;
+    }
+    else if (strcmp(shuju_type, "GB") == 0) {
+        num_size = (double)side;
+    }
+    else {
+		out_number->result = false;
+        return;
+    }
+    if (num_size >= 1024.0) {
+        out_number->result = false;
+        return;
+    }
+    else {
+        side_1024_num(side, *shuju_type, out_number);
+        out_number->result = true;
+        return;
+    }
+}
 void write_shuju(const char* path, long long size, return_data* out_data) {
     const long long buf_size = 1 << 20;
     bool t_n_write = false;
@@ -59,30 +126,10 @@ void write_shuju(const char* path, long long size, return_data* out_data) {
     auto cost = std::chrono::duration_cast<std::chrono::duration<double>>(time_end - time_start).count();
     double size_mb = (double)size / 1024.00 / 1024.00;
     double speed_write = size_mb / cost;
-	speed_write = round(speed_write * 100.0) / 100.0;
+    speed_write = round(speed_write * 100.0) / 100.0;
     out_data->result = ERR_SUCCESS;
     out_data->speed = speed_write;
     return;
-}
-extern "C" __declspec(dllexport)
-bool number_size(int side, const char* shuju_type) {
-    double num_size = 0.0;
-    if (side <= 0) return false;
-    if (strcmp(shuju_type, "B") == 0) {
-        num_size = side / (1024.0 * 1024.0 * 1024.0);
-    }
-    else if (strcmp(shuju_type, "KB") == 0) {
-        num_size = side / (1024.0 * 1024.0);
-    }
-    else if (strcmp(shuju_type, "MB") == 0) {
-        num_size = side / 1024.0;
-    }
-    else if (strcmp(shuju_type, "GB") == 0) {
-        num_size = side;
-    }
-    else return false;
-    if (num_size > 1024.0) return false;
-    else return true;
 }
 extern "C" __declspec(dllexport)
 void number(long long int side, const char* shuju_type, const char* path,struct return_data* out_data) {

@@ -5,7 +5,7 @@ from tkinter import messagebox
 from tkinter import ttk
 import os
 import uuid
-from ctypes import CDLL, c_bool, c_int, c_double
+from ctypes import CDLL, c_bool, c_int, c_double ,c_longlong,c_char
 import ctypes
 import traceback
 import sys
@@ -15,6 +15,14 @@ class ReturnData(ctypes.Structure):
         ("result",c_int),
         ("speed",c_double),
     ]
+class ReturnNum(ctypes.Structure):
+    _pack_ = 8
+    _fields_ = [
+        ("result",c_bool),
+        ("size", c_longlong),
+        ("type", c_char)
+    ]
+num=ReturnNum()
 Data=ReturnData()
 def get_dll(name):
     if hasattr(sys,"_METPASS"):
@@ -30,10 +38,10 @@ win.iconbitmap(get_dll("app.ico"))
 win.resizable(width=False, height=False)
 panduan_bool=True
 try:
-
     c=CDLL(get_dll("backend.dll"))
-    c.number_size.restype = c_bool
-    c.number.argtypes = [ctypes.c_longlong, ctypes.c_char_p, ctypes.c_char_p,ctypes.POINTER(ReturnData)]
+    c.number_size.argtypes=[c_longlong,ctypes.c_char_p,ctypes.POINTER(ReturnNum)]
+    c.number_size.restype = None
+    c.number.argtypes = [c_longlong, ctypes.c_char_p, ctypes.c_char_p,ctypes.POINTER(ReturnData)]
     c.number.restype = None
 except Exception:
     messagebox.showerror("错误",traceback.format_exc())
@@ -80,6 +88,7 @@ def check_num():
 def check_quanxian(win,check_address):
     num_check = wold_shuju_entry.get()
     type_check=type_xuan.get()
+    type_huan={"B":"B","K":"KB","M":"MB","G":"GB"}
     if check_address=="":
         win.after(0,shuju_result,False,"路径不能为空")
         return
@@ -95,25 +104,34 @@ def check_quanxian(win,check_address):
         with open(temporary_name,"x"):
             pass
         print("oo")
-        shuju_zonghe_check = c.number_size(num_check, type_check.encode("utf-8"))
-        if shuju_zonghe_check:
+        c.number_size(int(num_check), type_check.encode("utf-8"),ctypes.byref(num))
+        if not num.result:
             win.after(0, shuju_result, False, "输入数字过大,请重新输入")
             return
+        size_shuju=num.size
+        shuju_type=num.type.decode("utf-8")
+        shuju_type=type_huan.get(shuju_type,"?")
+        print(size_shuju)
+        print(shuju_type)
+        if not size_shuju==int(num_check) and not shuju_type==type_check:
+            yesno_huansuan=messagebox.askyesno("提示",f"已帮你自动将{type_check}换算为{shuju_type},确认换算吗?")
+            if yesno_huansuan:
+                xiugai_under_kuang=type_under_kuang_list.index(shuju_type)
+                type_xuan.current(xiugai_under_kuang)
+                wold_shuju_entry.delete(0,tk.END)
+                wold_shuju_entry.insert(0,str(size_shuju))
         win.after(0,shuju_result,True,"")
         return
     except PermissionError:
         print("权限不足")
-        #messagebox.showerror("错误", "权限不足")
         win.after(0, shuju_result, False, "权限不足")
         return
     except OSError:
         print("目录被锁定了或该磁盘为只读磁盘或磁盘已满")
-        #messagebox.showerror("错误", "目录被锁定了或该磁盘为只读磁盘或磁盘已满")
         win.after(0,shuju_result,False,"目录被锁定了或该磁盘为只读磁盘或磁盘已满")
         return
     except Exception:
         print("未知错误")
-        #messagebox.showerror("错误","未知错误")
         win.after(0,shuju_result,False,"未知错误")
         return
     finally:
@@ -130,8 +148,8 @@ def shuju_result(check_result,result_text):
     wold_shuju_get = int(wold_shuju_entry.get())
     address_shuju_get = address_Entry.get()
     address_shuju_get=address_shuju_get.replace("/","\\")
-    if type_shuju_get=="GB" and wold_shuju_get>=1:
-        xuan_yesno=messagebox.askyesno(title="提醒", message="你选的单位为GB,生成文件较大,确任生成吗?")
+    if type_shuju_get=="GB" or num.type.decode("utf-8")=="G" and wold_shuju_get>=1:
+        xuan_yesno=messagebox.askyesno(title="提醒", message="生成大小为GB,生成文件较大,确认生成吗?")
         if not xuan_yesno:
             return
     print("--")
