@@ -14,6 +14,7 @@ struct return_data
 {
     int result;
     double speed;
+    int progress;
 };
 struct return_number
 {
@@ -21,6 +22,7 @@ struct return_number
     long long size;
     char type;
 };
+
 void side_1024_num(long long size, const char type, struct return_number* out)
 {
     int n = 0;
@@ -84,6 +86,9 @@ void number_size(long long side, const char* shuju_type, struct return_number* o
 }
 void write_shuju(const char* path, long long size, return_data* out_data) {
     const long long buf_size = 1 << 20;
+    out_data->result = 0;
+	out_data->speed = 0.0;
+	out_data->progress = 0;
     bool t_n_write = false;
     std::vector<char> buf(buf_size, 0);
     std::ofstream out(path, std::ios::binary | std::ios::trunc);
@@ -95,6 +100,7 @@ void write_shuju(const char* path, long long size, return_data* out_data) {
     long long pos = 0;
     for (; pos + buf_size <= size; pos += buf_size) {
         out.write(buf.data(), buf_size);
+        out_data->progress = static_cast<int>(std::round(pos * 1.0 / (size * 1.0) * 100));
         if (!out.good()) {
             out.close();
             t_n_write = true;
@@ -108,6 +114,7 @@ void write_shuju(const char* path, long long size, return_data* out_data) {
             t_n_write = true;
         }
     }
+	out_data->progress = 100;
     if (!t_n_write)
     {
         out.flush();

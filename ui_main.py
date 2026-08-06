@@ -1,3 +1,4 @@
+import threading
 import tkinter as tk
 from threading import Thread
 from tkinter import filedialog
@@ -9,11 +10,13 @@ from ctypes import CDLL, c_bool, c_int, c_double ,c_longlong,c_char
 import ctypes
 import traceback
 import sys
+
 class ReturnData(ctypes.Structure):
     _pack_ = 8
     _fields_ = [
         ("result",c_int),
         ("speed",c_double),
+        ("progress",c_int),
     ]
 class ReturnNum(ctypes.Structure):
     _pack_ = 8
@@ -31,12 +34,16 @@ def get_dll(name):
         base_path = os.path.dirname(os.path.realpath(__file__))
         dll_address=os.path.join(base_path,name)
     return dll_address
+def progress_callback(percent:int):
+    win.after(0,lambda:progress_tiao.set(percent))
+
 win=tk.Tk()
 win.title("储存生成工具")
-win.geometry("400x300")
+win.geometry("400x150")
 win.iconbitmap(get_dll("app.ico"))
 win.resizable(width=False, height=False)
 panduan_bool=True
+check_bool=True
 try:
     c=CDLL(get_dll("backend.dll"))
     c.number_size.argtypes=[c_longlong,ctypes.c_char_p,ctypes.POINTER(ReturnNum)]
@@ -45,6 +52,7 @@ try:
     c.number.restype = None
 except Exception:
     messagebox.showerror("错误",traceback.format_exc())
+
 def address_get():
     address_path=filedialog.askdirectory(title="文件储存路径选择",initialdir = "C:/")
     if address_path:
@@ -137,7 +145,27 @@ def check_quanxian(win,check_address):
     finally:
         if os.path.exists(temporary_name):
             os.remove(temporary_name)
-
+def ask_progress():
+    global panduan_bool,progress_tiao,check_bool
+    progress_chucun=Data.progress
+    print(Data.progress)
+    progress_tiao.set(progress_chucun)
+    print(panduan_bool)
+    if not check_bool:
+        win.after(10,ask_progress)
+    else:
+        result_panduan(Data.result, Data.speed)
+        print(Data.result)
+        print(Data.speed)
+        panduan_bool = True
+def thread_dll(size:c_longlong,type:ctypes.c_char_p,path:ctypes.c_char_p):
+    global check_bool
+    check_bool=False
+    try:
+        c.number(size, type, path, ctypes.byref(Data))
+    except Exception:
+        print("0")
+    check_bool=True
 def shuju_result(check_result,result_text):
     global panduan_bool
     if not check_result:
@@ -157,11 +185,13 @@ def shuju_result(check_result,result_text):
     print(wold_shuju_get)
     print(address_shuju_get+"\\")
     print("__")
-    c.number(wold_shuju_get,type_shuju_get.encode('gbk'),(address_shuju_get+"\\").encode('gbk'),ctypes.byref(Data))
-    result_panduan(Data.result,Data.speed)
-    print(Data.result)
-    print(Data.speed)
-    panduan_bool=True
+    work= threading.Thread(
+        target=thread_dll,
+        args=(wold_shuju_get,type_shuju_get.encode('gbk'),(address_shuju_get+"\\").encode('gbk')),
+        daemon=True
+    )
+    work.start()
+    ask_progress()
     return
 def result_panduan(y_n,speed):
     text=None
@@ -216,8 +246,22 @@ address_Button.grid(column=2, row=0, padx=0, pady=0)
 
 write_speed=tk.Label(win,text="写入速度为:0mb/s",font=("黑体",14))
 write_speed.grid_remove()
+progress_frame=tk.Frame(win)
+progress_tiao=tk.DoubleVar(value=0.0)
+bar=ttk.Progressbar(
+    progress_frame,
+    orient="horizontal",
+    mode="determinate",
+    maximum=100,
+    variable=progress_tiao,
+    length=300
+)
+bar.grid(column=1, row=0,sticky="ew",columnspan=3,padx=0,pady=3)
+progress_Label=tk.Label(progress_frame,text="写入进度:",font=("黑体",12))
+progress_Label.grid(column=0, row=0,padx=0,pady=3,sticky="w")
+progress_frame.grid(column=0,row=4)
 bottom=tk.Button(win,text="开始生成",font=("黑体",12),command=shuju_panduan)
-bottom.grid(column=0,row=4,sticky="",columnspan=3)
+bottom.grid(column=0,row=5,sticky="",columnspan=3)
 
 type_frame.grid(column=0, row=0, padx=0, pady=0,sticky="w")
 wold_shuju.grid(column=0, row=1, padx=0, pady=0,sticky="w")
