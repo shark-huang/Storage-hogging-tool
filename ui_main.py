@@ -39,7 +39,7 @@ def progress_callback(percent:int):
 
 win=tk.Tk()
 win.title("储存生成工具")
-win.geometry("400x150")
+win.geometry("400x175")
 win.iconbitmap(get_dll("app.ico"))
 win.resizable(width=False, height=False)
 panduan_bool=True
